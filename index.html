@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>영종복합문화센터 길찾기</title>
+
     <style>
         body {
             font-family: 'Malgun Gothic', sans-serif;
@@ -15,57 +16,191 @@
             margin: 0;
             background-color: #f4f4f4;
         }
+
         .message-box {
             background-color: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             text-align: center;
+            max-width: 320px;
+        }
+
+        h3 {
+            margin-top: 0;
+        }
+
+        .loading {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
         }
     </style>
 </head>
+
 <body>
+
     <div class="message-box">
         <h3>길찾기 안내</h3>
-        <p>현재 위치를 확인하여<br><strong>영종복합문화센터</strong>으로 안내합니다.</p>
-        <p style="font-size: 0.9em; color: #666;">(위치 정보 접근을 '허용'해 주세요)</p>
+
+        <p>
+            현재 위치를 확인하여<br>
+            <strong>영종복합문화센터</strong>로<br>
+            안내합니다.
+        </p>
+
+        <p class="loading">
+            현재 위치를 확인하고 있습니다...
+        </p>
+
+        <p style="font-size: 0.9em; color: #666;">
+            위치 정보 접근을 '허용'해 주세요.
+        </p>
     </div>
 
-    <script>
-        function startRouting() {
-            // 브라우저가 위치 정보를 지원하는지 확인
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        // 1. 사용자의 현재 위치 정보 가져오기
-                        const currentLat = position.coords.latitude;
-                        const currentLon = position.coords.longitude;
-                        
-                        // 2. 목적지(영종복합문화센터) 실제 좌표
-                        const destLat = 37.4805032;
-                        const destLon = 126.5319946;
-                        const destName = encodeURIComponent("영종복합문화센터");
 
-                        // 3. 카카오맵 길찾기 URL 생성
-                        // 출발지: 현재 위치 / 도착지: 영종복합문화센터
-                        const url = `https://map.kakao.com/link/from/내위치,${currentLat},${currentLon}/to/${destName},${destLat},${destLon}`;
-                         
-                        // 4. 해당 URL로 페이지 자동 이동
-                        window.location.href = url;
-                    }, 
-                    function(error) { 
-                        // 위치 정보 접근 거부 또는 에러 발생 시 처리
-                        alert("위치 정보를 가져올 수 없습니다. 권한을 허용했는지 확인해주세요."); 
-                    } 
-                ); 
-            } else { 
-                alert("이 브라우저/기기에서는 위치 정보 기능을 지원하지 않습니다."); 
-            } 
-        } 
- 
-        // 페이지 로딩 시 자동으로 함수 실행
-        window.onload = startRouting; 
-    </script> 
-</body> 
+    <script>
+
+        function startRouting() {
+
+            // 브라우저가 위치 정보를 지원하는지 확인
+            if (!navigator.geolocation) {
+                alert("이 브라우저/기기에서는 위치 정보 기능을 지원하지 않습니다.");
+                return;
+            }
+
+
+            // 현재 위치 가져오기
+            navigator.geolocation.getCurrentPosition(
+
+                function(position) {
+
+                    const currentLat = position.coords.latitude;
+                    const currentLon = position.coords.longitude;
+
+
+                    // ==========================================
+                    // 목적지 : 영종복합문화센터
+                    // ==========================================
+
+                    const destLat = 37.4805032;
+                    const destLon = 126.5319946;
+                    const destName = "영종복합문화센터";
+
+
+                    // ==========================================
+                    // ① 카카오맵 앱 호출용 URL
+                    // ==========================================
+
+                    const kakaoAppUrl =
+                        `kakaomap://route?sp=${currentLat},${currentLon}` +
+                        `&ep=${destLat},${destLon}` +
+                        `&by=CAR`;
+
+
+                    // ==========================================
+                    // ② 카카오맵 웹 URL
+                    // ==========================================
+
+                    const kakaoWebUrl =
+                        `https://map.kakao.com/link/to/` +
+                        `${encodeURIComponent(destName)},${destLat},${destLon}`;
+
+
+                    // ==========================================
+                    // 카카오맵 앱 먼저 시도
+                    // ==========================================
+
+                    let appOpened = false;
+
+                    // 페이지가 백그라운드로 이동하면
+                    // 앱이 열린 것으로 판단
+                    const handleVisibilityChange = function() {
+
+                        if (document.hidden) {
+                            appOpened = true;
+                        }
+
+                    };
+
+                    document.addEventListener(
+                        "visibilitychange",
+                        handleVisibilityChange
+                    );
+
+
+                    // 앱 호출
+                    window.location.href = kakaoAppUrl;
+
+
+                    // ==========================================
+                    // 앱이 없으면 웹 카카오맵으로 이동
+                    // ==========================================
+
+                    setTimeout(function() {
+
+                        document.removeEventListener(
+                            "visibilitychange",
+                            handleVisibilityChange
+                        );
+
+                        if (!appOpened) {
+
+                            window.location.href = kakaoWebUrl;
+
+                        }
+
+                    }, 1800);
+
+                },
+
+
+                function(error) {
+
+                    let message =
+                        "위치 정보를 가져올 수 없습니다.\n\n";
+
+                    switch(error.code) {
+
+                        case error.PERMISSION_DENIED:
+                            message +=
+                                "위치 정보 사용을 허용해 주세요.";
+                            break;
+
+                        case error.POSITION_UNAVAILABLE:
+                            message +=
+                                "현재 위치를 확인할 수 없습니다.";
+                            break;
+
+                        case error.TIMEOUT:
+                            message +=
+                                "위치 확인 시간이 초과되었습니다.";
+                            break;
+
+                        default:
+                            message +=
+                                "잠시 후 다시 시도해 주세요.";
+                    }
+
+                    alert(message);
+
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+
+            );
+        }
+
+
+        // 페이지가 열리면 자동 실행
+        window.onload = startRouting;
+
+    </script>
+
+</body>
 </html>
 ```
